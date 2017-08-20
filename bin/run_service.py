@@ -6,6 +6,7 @@ import sys
 sys.path.append('..')
 
 from directory_uploader import setup_watchers, Sender, Watcher
+from database.models import init_sqlite
 
 
 def main():
@@ -15,6 +16,12 @@ def main():
     config = ConfigParser.ConfigParser()
     with open(args.config) as fp:
         config.readfp(fp)
+    db_type = config.get('database', 'type')
+    if db_type.lower() == 'sqlite':
+        filename = config.get('databse', 'file')
+        init_sqlite(filename)
+    else:
+        raise Exception('Failed to initialize databse')
     senders = read_senders(config)
     watchers = read_watchers(config)
     service = setup_watchers(senders, watchers)
