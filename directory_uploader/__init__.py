@@ -1,3 +1,4 @@
+# Copyright (c) 2017 Pavel 'Blane' Tuchin
 from collections import namedtuple
 from . import sender
 from . import watcher

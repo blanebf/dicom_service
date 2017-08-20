@@ -1,3 +1,4 @@
+# Copyright (c) 2017 Pavel 'Blane' Tuchin
 import argparse
 import ConfigParser
 import time

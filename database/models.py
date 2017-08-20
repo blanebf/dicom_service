@@ -1,3 +1,4 @@
+# Copyright (c) 2017 Pavel 'Blane' Tuchin
 from peewee import *
 
 database_proxy = Proxy()

@@ -1,3 +1,5 @@
+# Copyright (c) 2017 Pavel 'Blane' Tuchin
+
 import logging
 from datetime import datetime, timedelta
 from watchdog.observers import Observer
