@@ -5,7 +5,7 @@ from datetime import datetime
 import logging
 from threading import Thread
 from peewee import TextField, DateTimeField, BooleanField, CharField, \
-    IntegerField
+    IntegerField, DatabaseError
 import dicom
 from netdicom2.applicationentity import ClientAE
 from netdicom2.sopclass import storage_scu
@@ -35,6 +35,7 @@ class Sender(Thread):
         self.address = address
         self.port = port
         self.is_stopped = False
+        self.processors = []
 
     def send(self, filename, send_time, remove_on_send):
         with database_proxy.atomic():
@@ -49,6 +50,9 @@ class Sender(Thread):
                 remove_on_send=remove_on_send
             )
 
+    def add_processor(self, processor):
+        self.processors.append(processor)
+
     def run(self):
         while not self.is_stopped:
             self.process_queue()
@@ -60,11 +64,16 @@ class Sender(Thread):
     def process_queue(self):
         with database_proxy.atomic():
             now = datetime.utcnow()
-            query = OutgoingQueue.select().where(
-                OutgoingQueue.send_ready < now,
-                OutgoingQueue.local_ae == self.local_ae,
-                OutgoingQueue.remote_ae == self.remote_ae
-            )
+            try:
+                query = OutgoingQueue.select().where(
+                    OutgoingQueue.send_ready < now,
+                    OutgoingQueue.local_ae == self.local_ae,
+                    OutgoingQueue.remote_ae == self.remote_ae
+                )
+            except DatabaseError:
+                self.logger.exception('Query failed')
+                return
+
             for record in query:
                 try:
                     self.logger.info('Sending file %s', record.filename)
@@ -83,9 +92,12 @@ class Sender(Thread):
             address=self.address,
             port=self.port
         )
+        filename = record.filename
+        for processor in self.processors:
+            filename = processor.process_file(filename)
 
         with ae.request_association(remote_ae) as asce:
             srv = asce.get_scu(sop_class)
-            srv(record.filename, 1)
+            srv(filename, 1)
         if record.remove_on_send:
-            os.remove(record.filename)
+            os.remove(filename)
