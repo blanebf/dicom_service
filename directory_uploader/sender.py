@@ -1,6 +1,7 @@
 import os
 import time
 from datetime import datetime
+import logging
 from threading import Thread
 from peewee import TextField, DateTimeField, BooleanField, CharField, \
     IntegerField
@@ -8,6 +9,9 @@ import dicom
 from netdicom2.applicationentity import ClientAE
 from netdicom2.sopclass import storage_scu
 from database.models import BaseModel, database_proxy
+
+
+logger = logging.getLogger(__name__)
 
 
 class OutgoingQueue(BaseModel):
@@ -24,6 +28,7 @@ class OutgoingQueue(BaseModel):
 class Sender(Thread):
     def __init__(self, local_ae, remote_ae, address, port):
         Thread.__init__(self)
+        self.logger = logger.getChild('Sender.{}'.format(remote_ae))
         self.local_ae = local_ae
         self.remote_ae = remote_ae
         self.address = address
@@ -32,6 +37,7 @@ class Sender(Thread):
 
     def send(self, filename, send_time, remove_on_send):
         with database_proxy.atomic():
+            self.logger.info('Adding new file to the queue %s', filename)
             OutgoingQueue.create(
                 filename=filename,
                 send_ready=send_time,
@@ -59,7 +65,12 @@ class Sender(Thread):
                 OutgoingQueue.remote_ae == self.remote_ae
             )
             for record in query:
-                self.send_file(record)
+                try:
+                    self.logger.info('Sending file %s', record.filename)
+                    self.send_file(record)
+                except Exception:
+                    self.logger.exception('Failed to send file %s',
+                                          record.filename)
 
     def send_file(self, record):
         ds = dicom.read_file(record.filename, stop_before_pixels=True)
