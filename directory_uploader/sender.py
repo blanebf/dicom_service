@@ -68,7 +68,8 @@ class Sender(Thread):
                 query = OutgoingQueue.select().where(
                     OutgoingQueue.send_ready < now,
                     OutgoingQueue.local_ae == self.local_ae,
-                    OutgoingQueue.remote_ae == self.remote_ae
+                    OutgoingQueue.remote_ae == self.remote_ae,
+                    OutgoingQueue.is_sent == False
                 )
             except DatabaseError:
                 self.logger.exception('Query failed')
@@ -81,6 +82,9 @@ class Sender(Thread):
                 except Exception:
                     self.logger.exception('Failed to send file %s',
                                           record.filename)
+                else:
+                    record.is_sent = True
+                    record.save()
 
     def send_file(self, record):
         ds = dicom.read_file(record.filename, stop_before_pixels=True)
