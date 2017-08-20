@@ -1,6 +1,7 @@
 # Copyright (c) 2017 Pavel 'Blane' Tuchin
 import argparse
 import ConfigParser
+import logging
 import time
 import sys
 sys.path.append('..')
@@ -16,6 +17,13 @@ def main():
     config = ConfigParser.ConfigParser()
     with open(args.config) as fp:
         config.readfp(fp)
+    enable_logging = config.getboolean('logging', 'enableLogging')
+    if enable_logging:
+        _format = config.get('logging', 'format')
+        log_level = config.getint(20)
+        filename = config.get('logging', 'filename')
+        logging.basicConfig(format=_format, level=log_level,
+                            filename=filename)
     db_type = config.get('database', 'type')
     if db_type.lower() == 'sqlite':
         filename = config.get('databse', 'file')
