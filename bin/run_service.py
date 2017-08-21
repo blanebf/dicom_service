@@ -6,7 +6,7 @@ import time
 import sys
 sys.path.append('..')
 
-from directory_uploader import setup_watchers, Sender, Watcher
+from directory_uploader import setup_watchers, Sender, Watcher, Processor
 from database.models import init_sqlite
 
 
@@ -20,7 +20,7 @@ def main():
     enable_logging = config.getboolean('logging', 'enableLogging')
     if enable_logging:
         _format = config.get('logging', 'format')
-        log_level = config.getint(20)
+        log_level = config.getint('logging', 'logLevel')
         filename = config.get('logging', 'filename')
         logging.basicConfig(format=_format, level=log_level,
                             filename=filename)
@@ -29,7 +29,7 @@ def main():
         filename = config.get('databse', 'file')
         init_sqlite(filename)
     else:
-        raise Exception('Failed to initialize databse')
+        raise Exception('Failed to initialize database')
     senders = read_senders(config)
     watchers = read_watchers(config)
     service = setup_watchers(senders, watchers)
@@ -53,9 +53,28 @@ def read_senders(config):
         remote_ae = config.get(section, 'remote_ae')
         address = config.get(section, 'address')
         port = config.getint(section, 'port')
+        processors_count = config.getint(section, 'processors')
+        processors = read_processors(config, section, processors_count)
         sender = Sender(name=name, local_ae=local_ae, remote_ae=remote_ae,
-                        address=address, port=port)
+                        address=address, port=port, processors=processors)
         result.append(sender)
+    return result
+
+
+def read_processors(config, section, count):
+    result = []
+    if not count:
+        return result
+    for i in range(count):
+        proc_section = '{}.processor{}'.format(section, i)
+        proc_type = config.get(proc_section, 'type')
+        keep_original = config.getboolean(proc_section, 'keepOriginal')
+        output_dir = config.get(proc_section, 'outputDir')
+        proc_conf_section = '{}.config'.format(proc_section)
+        proc_conf = {k: v for k, v in config.items(proc_conf_section)}
+        processor = Processor(type=proc_type, keep_original=keep_original,
+                              output_dir=output_dir, config=proc_conf)
+        result.append(processor)
     return result
 
 
