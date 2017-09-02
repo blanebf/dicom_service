@@ -10,7 +10,8 @@ logger = logging.getLogger(__name__)
 
 
 class Watcher(FileSystemEventHandler):
-    def __init__(self, sender, directory, remove_on_send, send_delay):
+    def __init__(self, sender, directory, remove_on_send, send_delay,
+                 recursive=False):
         self.sender = sender
         self.directory = directory
         self.remove_on_send = remove_on_send
@@ -19,7 +20,7 @@ class Watcher(FileSystemEventHandler):
         self.logger = logger.getChild('Watcher')
 
         self.observer = Observer()
-        self.observer.schedule(self, path=self.directory)
+        self.observer.schedule(self, path=self.directory, recursive=recursive)
 
     def on_created(self, event):
         if event.is_directory:

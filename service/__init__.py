@@ -2,12 +2,14 @@ from collections import namedtuple
 import logging
 from database.models import init_sqlite
 from dataset_processor.tag_morpher import TagMorpher
+from dataset_processor.uid_rewrite import UIDRewriter
+from dataset_processor.reencoder import ReEncoder
 from directory_uploader import sender
 from directory_uploader import watcher
 
 Config = namedtuple('Config', ['senders', 'watchers', 'database', 'logging'])
 Watcher = namedtuple('Watcher', ['directory', 'remove_on_send', 'send_delay',
-                                 'sender'])
+                                 'sender', 'recursive'])
 Sender = namedtuple('Sender', ['name', 'local_ae', 'remote_ae', 'address',
                                'port', 'processors'])
 
@@ -16,7 +18,9 @@ Processor = namedtuple('Processor', ['type', 'keep_original', 'output_dir',
 
 
 processor_types = {
-    'TagMorpher': TagMorpher
+    'TagMorpher': TagMorpher,
+    'UIDWriter': UIDRewriter,
+    'ReEncoder': ReEncoder
 }
 
 
@@ -60,7 +64,8 @@ class Service(object):
         for w in watchers:
             sender_obj = self.senders[w.sender]
             watcher_obj = watcher.Watcher(sender_obj, w.directory,
-                                          w.remove_on_send, w.send_delay)
+                                          w.remove_on_send, w.send_delay,
+                                          w.recursive)
             yield watcher_obj
 
     @staticmethod
