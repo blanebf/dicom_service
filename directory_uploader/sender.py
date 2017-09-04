@@ -89,7 +89,7 @@ class Sender(Thread):
     def send_file(self, record):
         ds = dicom.read_file(record.filename, stop_before_pixels=True)
         sop_class = ds.file_meta.MediaStorageSOPClassUID
-        ts = ds.filename.TransferSyntax
+        ts = ds.file_meta.TransferSyntax
         ae = ClientAE(self.local_ae, supported_ts=[ts]).add_scu(storage_scu)
         remote_ae = dict(
             aet=self.remote_ae,

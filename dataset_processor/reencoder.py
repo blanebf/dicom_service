@@ -20,6 +20,17 @@ class ReEncoder(ProcessorBase):
 
     def process(self, ds):
         self._change_charset(ds)
+        if self.target in python_encoding:
+            # Set SpecificCharacterSet in processed dataset if target is
+            # valid DICOM encoding
+            ds.SpecificCharacterSet = self.target
+        else:
+            for k, v in python_encoding.items():
+                # If we target was specified as python encoding, than we
+                # search for it in mapping and set proper SpecificCharacterSet
+                # If it's not found, than SpecificCharacter set is left as-is.
+                if v == self.target:
+                    ds.SpecificCharacterSet = k
         return ds
 
     def _change_charset(self, ds):
