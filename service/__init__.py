@@ -62,8 +62,8 @@ class Service(object):
 
     def _setup_watchers(self, watchers):
         for w in watchers:
-            sender_obj = self.senders[w.sender]
-            watcher_obj = watcher.Watcher(sender_obj, w.directory,
+            senders = [self.senders[s] for s in w.senders]
+            watcher_obj = watcher.Watcher(senders, w.directory,
                                           w.remove_on_send, w.send_delay,
                                           w.recursive)
             yield watcher_obj

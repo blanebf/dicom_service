@@ -61,10 +61,11 @@ def read_watchers(config):
         directory = config.get(section, 'directory')
         remove_on_send = config.getboolean(section, 'remove_on_send')
         send_delay = config.getint(section, 'send_delay')
-        sender = config.get(section, 'sender')
+        senders = config.get(section, 'sender').split(',')
+        senders = [s.trim() for s in senders]
         recursive = config.get(section, 'recursive')
         watcher = Watcher(directory=directory, remove_on_send=remove_on_send,
-                          send_delay=send_delay, sender=sender,
+                          send_delay=send_delay, senders=senders,
                           recursive=recursive)
         result.append(watcher)
     return result

@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 class Watcher(FileSystemEventHandler):
-    def __init__(self, sender, directory, remove_on_send, send_delay,
+    def __init__(self, senders, directory, remove_on_send, send_delay,
                  recursive=False):
-        self.sender = sender
+        self.senders = senders
         self.directory = directory
         self.remove_on_send = remove_on_send
         self.send_delay = send_delay
@@ -30,10 +30,11 @@ class Watcher(FileSystemEventHandler):
                          event.src_path)
         event_time = datetime.utcnow()
         ready_time = event_time + timedelta(seconds=self.send_delay)
-        try:
-            self.sender.send(event.src_path, ready_time, self.remove_on_send)
-        except Exception:
-            self.logger.exception('Failed to send file %s', event.src_path)
+        for sender in self.senders:
+            try:
+                sender.send(event.src_path, ready_time, self.remove_on_send)
+            except Exception:
+                self.logger.exception('Failed to send file %s', event.src_path)
 
     def start(self):
         self.logger.info('Starting watcher on directory %s', self.directory)
