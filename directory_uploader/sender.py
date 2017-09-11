@@ -36,6 +36,9 @@ class Sender(Thread):
         self.port = port
         self.is_stopped = False
         self.processors = []
+        if not OutgoingQueue.table_exists():
+            # create table queue only if it doesn't exists
+            OutgoingQueue.create_table()
 
     def send(self, filename, send_time, remove_on_send):
         with database_proxy.atomic():
