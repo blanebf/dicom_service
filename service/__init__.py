@@ -1,20 +1,28 @@
 from collections import namedtuple
 import logging
+import threading
 from database.models import init_sqlite
 from dataset_processor.tag_morpher import TagMorpher
 from dataset_processor.uid_rewrite import UIDRewriter
 from dataset_processor.reencoder import ReEncoder
 from directory_uploader import sender
 from directory_uploader import watcher
+from . import dicom_srv
 
-Config = namedtuple('Config', ['senders', 'watchers', 'database', 'logging'])
+Config = namedtuple('Config', ['senders', 'watchers', 'database', 'logging',
+                               'dicom_service'])
 Watcher = namedtuple('Watcher', ['directory', 'remove_on_send', 'send_delay',
-                                 'sender', 'recursive'])
+                                 'senders', 'recursive'])
 Sender = namedtuple('Sender', ['name', 'local_ae', 'remote_ae', 'address',
                                'port', 'processors'])
 
 Processor = namedtuple('Processor', ['type', 'keep_original', 'output_dir',
                                      'config'])
+DICOMService = namedtuple('DICOMService', ['storage_dir', 'ae_title', 'port',
+                                           'move_handlers', 'find_handlers',
+                                           'store_handlers', 'devices'])
+DICOMHandler = namedtuple('DICOMHandler', ['type', 'config'])
+DICOMDevice = namedtuple('DICOMDevice', ['name', 'ae_title', 'address', 'port'])
 
 
 processor_types = {
@@ -30,14 +38,17 @@ class Service(object):
         self._setup_database(config.database)
         self.senders = {k: v for k, v in self._setup_senders(config.senders)}
         self.watchers = list(self._setup_watchers(config.watchers))
+        self.dicom_service = self._setup_dicom_service(config.dicom_service)
 
     def start(self):
+        threading.Thread(target=self.dicom_service.serve_forever).start()
         for s in self.senders.values():
             s.start()
         for w in self.watchers:
             w.start()
 
     def stop(self):
+        self.dicom_service.quit()
         for w in self.watchers:
             w.stop()
         for s in self.senders.values():
@@ -56,6 +67,9 @@ class Service(object):
     @staticmethod
     def _setup_logging(config):
         enable_logging = bool(config['enableLogging'])
+        if 'level' in config:
+            # convert logging level to string
+            config['level'] = int(config['level'])
         del config['enableLogging']
         if enable_logging:
             logging.basicConfig(**config)
@@ -77,4 +91,17 @@ class Service(object):
                 processor = factory(proc.config, proc.keep_original,
                                     proc.output_dir)
                 sender_obj.add_processor(processor)
-            yield s.name, sender
+            yield s.name, sender_obj
+
+    @staticmethod
+    def _setup_dicom_service(dicom_conf):
+        service = dicom_srv.DICOMService(dicom_conf.storage_dir,
+                                         dicom_conf.ae_title,
+                                         dicom_conf.port)
+        for handler in dicom_conf.find_handlers:
+            find_handler = dicom_srv.HANDLERS[handler.type]()
+            service.add_find(find_handler)
+        for handler in dicom_conf.store_handlers:
+            store_handler = dicom_srv.HANDLERS[handler.type]()
+            service.add_storage(store_handler)
+        return service

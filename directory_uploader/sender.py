@@ -82,7 +82,7 @@ class Sender(Thread):
                 try:
                     self.logger.info('Sending file %s', record.filename)
                     self.send_file(record)
-                except Exception:
+                except Exception as e:
                     self.logger.exception('Failed to send file %s',
                                           record.filename)
                 else:
@@ -92,7 +92,7 @@ class Sender(Thread):
     def send_file(self, record):
         ds = dicom.read_file(record.filename, stop_before_pixels=True)
         sop_class = ds.file_meta.MediaStorageSOPClassUID
-        ts = ds.file_meta.TransferSyntax
+        ts = ds.file_meta.TransferSyntaxUID
         ae = ClientAE(self.local_ae, supported_ts=[ts]).add_scu(storage_scu)
         remote_ae = dict(
             aet=self.remote_ae,
