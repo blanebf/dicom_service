@@ -5,6 +5,7 @@ from service import Config, Sender, Watcher, Processor
 
 def read_config(filenames):
     config = ConfigParser.ConfigParser()
+    config.optionxform = str
     config.read(filenames)
     log_config = section_to_dict(config, 'logging')
     db_config = section_to_dict(config, 'database')
