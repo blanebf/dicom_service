@@ -41,14 +41,16 @@ class Service(object):
         self.dicom_service = self._setup_dicom_service(config.dicom_service)
 
     def start(self):
-        threading.Thread(target=self.dicom_service.serve_forever).start()
+        if self.dicom_service:
+            threading.Thread(target=self.dicom_service.serve_forever).start()
         for s in self.senders.values():
             s.start()
         for w in self.watchers:
             w.start()
 
     def stop(self):
-        self.dicom_service.quit()
+        if self.dicom_service:
+            self.dicom_service.quit()
         for w in self.watchers:
             w.stop()
         for s in self.senders.values():
@@ -95,6 +97,8 @@ class Service(object):
 
     @staticmethod
     def _setup_dicom_service(dicom_conf):
+        if not dicom_conf:
+            return None
         service = dicom_srv.DICOMService(dicom_conf.storage_dir,
                                          dicom_conf.ae_title,
                                          dicom_conf.port)
