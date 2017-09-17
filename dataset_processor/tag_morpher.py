@@ -9,5 +9,8 @@ class TagMorpher(ProcessorBase):
 
     def process(self, ds):
         for attr, value in self.attribute_map.items():
+            if '\\' in value:
+                # we have a multi-value here
+                value = value.split('\\')
             setattr(ds, attr, value)
         return ds
