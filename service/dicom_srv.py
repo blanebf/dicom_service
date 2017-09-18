@@ -69,10 +69,12 @@ def add_handler(handler):
 
 
 add_handler(storage_service.LoggingStorage)
+add_handler(storage_service.Forwarding)
 
 
 class DICOMService(StorageAE):
-    def __init__(self, storage_dir, ae_title, port, max_pdu_length=65536):
+    def __init__(self, storage_dir, ae_title, port,
+                 max_pdu_length=65536):
         StorageAE.__init__(self, storage_dir, ae_title, port, SUPPORTED_TS,
                            max_pdu_length)
         self.storage_handlers = []

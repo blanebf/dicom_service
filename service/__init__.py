@@ -95,17 +95,18 @@ class Service(object):
                 sender_obj.add_processor(processor)
             yield s.name, sender_obj
 
-    @staticmethod
-    def _setup_dicom_service(dicom_conf):
+    def _setup_dicom_service(self, dicom_conf):
         if not dicom_conf:
             return None
         service = dicom_srv.DICOMService(dicom_conf.storage_dir,
                                          dicom_conf.ae_title,
                                          dicom_conf.port)
         for handler in dicom_conf.find_handlers:
-            find_handler = dicom_srv.HANDLERS[handler.type]()
+            find_handler = dicom_srv.HANDLERS[handler.type](self,
+                                                            handler.config)
             service.add_find(find_handler)
         for handler in dicom_conf.store_handlers:
-            store_handler = dicom_srv.HANDLERS[handler.type]()
+            store_handler = dicom_srv.HANDLERS[handler.type](self,
+                                                             handler.config)
             service.add_storage(store_handler)
         return service
