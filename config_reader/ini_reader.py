@@ -82,7 +82,7 @@ def read_watchers(config):
         send_delay = config.getint(section, 'send_delay')
         senders = config.get(section, 'senders').split(',')
         senders = [s.strip() for s in senders]
-        recursive = config.get(section, 'recursive')
+        recursive = config.getboolean(section, 'recursive')
         watcher = Watcher(directory=directory, remove_on_send=remove_on_send,
                           send_delay=send_delay, senders=senders,
                           recursive=recursive)
