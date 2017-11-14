@@ -38,10 +38,11 @@ class Sender(Thread):
         self.processors = []
         if not OutgoingQueue.table_exists():
             # create table queue only if it doesn't exists
-            OutgoingQueue.create_table()
+            with database_proxy.transaction('immediate'):
+                OutgoingQueue.create_table()
 
     def send(self, filename, send_time, remove_on_send):
-        with database_proxy.atomic():
+        with database_proxy.transaction('immediate'):
             self.logger.info('Adding new file to the queue %s', filename)
             OutgoingQueue.create(
                 filename=filename,
@@ -65,7 +66,7 @@ class Sender(Thread):
         self.is_stopped = True
 
     def process_queue(self):
-        with database_proxy.atomic():
+        with database_proxy.execution_context(with_transaction=False):
             now = datetime.utcnow()
             try:
                 query = OutgoingQueue.select().where(
@@ -73,21 +74,36 @@ class Sender(Thread):
                     OutgoingQueue.local_ae == self.local_ae,
                     OutgoingQueue.remote_ae == self.remote_ae,
                     OutgoingQueue.is_sent == False
-                )
+                ).limit(1)
             except DatabaseError:
                 self.logger.exception('Query failed')
                 return
 
             for record in query:
+                filename = record.filename
                 try:
-                    self.logger.info('Sending file %s', record.filename)
+                    self.logger.info('Sending file %s', filename)
                     self.send_file(record)
                 except Exception as e:
                     self.logger.exception('Failed to send file %s',
-                                          record.filename)
+                                          filename)
                 else:
                     record.is_sent = True
-                    record.save()
+                    with database_proxy.transaction('immediate'):
+                        record.save()
+
+                try:
+                    awaiting = OutgoingQueue.select().where(
+                        OutgoingQueue.local_ae != self.local_ae,
+                        OutgoingQueue.filename == filename,
+                        OutgoingQueue.is_sent == False
+                    )
+                except DatabaseError:
+                    self.logger.exception('Query failed')
+                    return
+
+                if not awaiting and os.path.exists(filename):
+                    os.remove(filename)
 
     def send_file(self, record):
         ds = dicom.read_file(record.filename, stop_before_pixels=True)
@@ -106,5 +122,3 @@ class Sender(Thread):
         with ae.request_association(remote_ae) as asce:
             srv = asce.get_scu(sop_class)
             srv(filename, 1)
-        if record.remove_on_send:
-            os.remove(filename)
