@@ -66,7 +66,7 @@ class Sender(Thread):
         self.is_stopped = True
 
     def process_queue(self):
-        with database_proxy.transaction('immediate'):
+        with database_proxy.execution_context(with_transaction=False):
             now = datetime.utcnow()
             try:
                 query = OutgoingQueue.select().where(
@@ -74,7 +74,7 @@ class Sender(Thread):
                     OutgoingQueue.local_ae == self.local_ae,
                     OutgoingQueue.remote_ae == self.remote_ae,
                     OutgoingQueue.is_sent == False
-                )
+                ).limit(1)
             except DatabaseError:
                 self.logger.exception('Query failed')
                 return
@@ -89,7 +89,8 @@ class Sender(Thread):
                                           filename)
                 else:
                     record.is_sent = True
-                    record.save()
+                    with database_proxy.transaction('immediate'):
+                        record.save()
 
                 try:
                     awaiting = OutgoingQueue.select().where(
