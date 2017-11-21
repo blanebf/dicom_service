@@ -7,6 +7,7 @@ from threading import Thread
 from peewee import TextField, DateTimeField, BooleanField, CharField, \
     IntegerField, DatabaseError
 import dicom
+from dicom.errors import InvalidDicomError
 from netdicom2.applicationentity import ClientAE
 from netdicom2.sopclass import storage_scu
 from database.models import BaseModel, database_proxy
@@ -42,6 +43,12 @@ class Sender(Thread):
                 OutgoingQueue.create_table()
 
     def send(self, filename, send_time, remove_on_send):
+        try:
+            dicom.read_file(filename, stop_before_pixels=True)
+        except InvalidDicomError:
+            self.logger.info('Skip not DICOM file %s', filename)
+            return
+
         with database_proxy.transaction('immediate'):
             self.logger.info('Adding new file to the queue %s', filename)
             OutgoingQueue.create(
