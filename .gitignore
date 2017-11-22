@@ -1,2 +1,6 @@
 netdicom2/
 config_local/
+.idea
+*.pyc
+*.log
+*.db
