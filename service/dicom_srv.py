@@ -3,11 +3,15 @@
 from itertools import chain
 import logging
 
-from dicom.UID import UID, ImplicitVRLittleEndian, ExplicitVRBigEndian, \
-    ExplicitVRLittleEndian, DeflatedExplicitVRLittleEndian
+try:
+    from dicom.UID import UID, ImplicitVRLittleEndian, ExplicitVRBigEndian, \
+        ExplicitVRLittleEndian, DeflatedExplicitVRLittleEndian
+except ImportError:
+    from pydicom.uid import UID, ImplicitVRLittleEndian, ExplicitVRBigEndian, \
+        ExplicitVRLittleEndian, DeflatedExplicitVRLittleEndian
 
 from netdicom2 import StorageAE
-from netdicom2.sopclass import SUCCESS
+from netdicom2.statuses import SUCCESS
 
 from dicom_handlers import storage_service
 

@@ -1,6 +1,10 @@
 # Copyright (c) 2017 Pavel 'Blane' Tuchin
-from dicom.charset import python_encoding
-from dicom.valuerep import text_VRs
+try:
+    from dicom.charset import python_encoding
+    from dicom.valuerep import text_VRs
+except ImportError:
+    from pydicom.charset import python_encoding
+    from pydicom.valuerep import text_VRs
 from .processor_base import ProcessorBase
 
 
