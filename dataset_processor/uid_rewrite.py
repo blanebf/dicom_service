@@ -1,5 +1,8 @@
 # Copyright (c) 2017 Pavel 'Blane' Tuchin
-from dicom.UID import generate_uid
+try:
+    from dicom.UID import generate_uid
+except ImportError:
+    from pydicom.uid import generate_uid
 from .processor_base import ProcessorBase
 
 

@@ -6,7 +6,10 @@ import logging
 from threading import Thread
 from peewee import TextField, DateTimeField, BooleanField, CharField, \
     IntegerField, DatabaseError
-import dicom
+try:
+    from dicom import read_file
+except ImportError:
+    from pydicom import read_file
 from netdicom2.applicationentity import ClientAE
 from netdicom2.sopclass import storage_scu
 from database.models import BaseModel, database_proxy
@@ -90,7 +93,7 @@ class Sender(Thread):
                     record.save()
 
     def send_file(self, record):
-        ds = dicom.read_file(record.filename, stop_before_pixels=True)
+        ds = read_file(record.filename, stop_before_pixels=True)
         sop_class = ds.file_meta.MediaStorageSOPClassUID
         ts = ds.file_meta.TransferSyntaxUID
         ae = ClientAE(self.local_ae, supported_ts=[ts]).add_scu(storage_scu)

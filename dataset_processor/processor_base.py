@@ -1,6 +1,9 @@
 # Copyright (c) 2017 Pavel 'Blane' Tuchin
 import os
-import dicom
+try:
+    from dicom import read_file
+except ImportError:
+    from pydicom import read_file
 
 
 class ProcessorBase(object):
@@ -14,7 +17,7 @@ class ProcessorBase(object):
 
     def process_file(self, filename):
         fn = os.path.basename(filename)
-        ds = dicom.read_file(filename)
+        ds = read_file(filename)
         ds = self.process(ds)
         if self.keep_original:
             filename = os.path.join(self.output_dir, fn)

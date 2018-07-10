@@ -1,8 +1,12 @@
 # Copyright (c) 2017 Pavel 'Blane' Tuchin
 from datetime import datetime
 import logging
-import dicom
-from netdicom2.sopclass import SUCCESS, WARNING, storage_scp
+try:
+    from dicom import read_file
+except ImportError:
+    from pydicom import read_file
+from netdicom2.sopclass import storage_scp
+from netdicom2.statuses import SUCCESS, PROCESSING_FAILURE
 
 
 logger = logging.getLogger(__name__)
@@ -24,7 +28,7 @@ class LoggingStorage(object):
         :return: handler always return success error code
         """
         logger.info('Received file with context %s', repr(context))
-        ds = dicom.read_file(ds)
+        ds = read_file(ds)
         logger.info('Dumping received dataset')
         logger.info('{}'.format(ds))
         return SUCCESS
@@ -54,5 +58,5 @@ class Forwarding(object):
                 sender.send(filename, datetime.utcnow(), self.remove_on_send)
             except Exception:
                 self.logger.exception('Failed to send file %s', filename)
-                result = WARNING
+                result = PROCESSING_FAILURE
         return result
