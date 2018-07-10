@@ -1,4 +1,4 @@
-dicom_service
 pydicom>=0.9.9
 watchdog>=0.8.3
 peewee>=2.10.1
+git+https://github.com/blanebf/pynetdicom2.git
